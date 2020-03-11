@@ -13,7 +13,7 @@ const withUsage = createDocumentationMessageGenerator({
   connector: true,
 });
 
-export type HitsPerPageRenderingOptionsItem = {
+export type HitsPerPageRendererOptionsItem = {
   /**
    * Label to display in the option.
    */
@@ -30,7 +30,7 @@ export type HitsPerPageRenderingOptionsItem = {
   isRefined: boolean;
 };
 
-export type HitsPerPageWidgetOptionsItem = {
+export type HitsPerPageConnectorParamsItem = {
   /**
    * Label to display in the option.
    */
@@ -49,30 +49,30 @@ export type HitsPerPageWidgetOptionsItem = {
   default?: boolean;
 };
 
-export type HitsPerPageWidgetOptions = {
+export type HitsPerPageConnectorParams = {
   /**
    * Array of objects defining the different values and labels.
    */
-  items: HitsPerPageWidgetOptionsItem[];
+  items: HitsPerPageConnectorParamsItem[];
 
   /**
    * Function to transform the items passed to the templates.
    */
   transformItems?: (
-    objects: HitsPerPageWidgetOptionsItem[]
-  ) => HitsPerPageWidgetOptionsItem[];
-} & RendererOptions;
+    objects: HitsPerPageConnectorParamsItem[]
+  ) => HitsPerPageConnectorParamsItem[];
+};
 
-export type HitsPerPageRenderingOptions = {
+export type HitsPerPageRendererOptions<TWidgetParams> = {
   /**
    * Array of objects defining the different values and labels.
    */
-  items: HitsPerPageRenderingOptionsItem[];
+  items: HitsPerPageRendererOptionsItem[];
 
   /**
    * Creates the URL for a single item name in the list.
    */
-  createURL: (value: HitsPerPageRenderingOptionsItem['value']) => string;
+  createURL: (value: HitsPerPageRendererOptionsItem['value']) => string;
 
   /**
    * Sets the number of hits per page and trigger a search.
@@ -85,10 +85,10 @@ export type HitsPerPageRenderingOptions = {
   hasNoResults: boolean;
 
   /**
-   * Original `HitsPerPageWidgetOptions` forwarded to `renderFn`.
+   * Original `HitsPerPageConnectorParams` forwarded to `renderFn`.
    */
-  widgetParams: HitsPerPageWidgetOptions;
-};
+  widgetParams: HitsPerPageConnectorParams;
+} & RendererOptions<TWidgetParams>;
 
 /**
  * **HitsPerPage** connector provides the logic to create custom widget that will
@@ -97,10 +97,10 @@ export type HitsPerPageRenderingOptions = {
  * This connector provides a `refine()` function to change the hits per page configuration and trigger a new search.
  * @example
  * // custom `renderFn` to render the custom HitsPerPage widget
- * function renderFn(HitsPerPageRenderingOptions, isFirstRendering) {
- *   var containerNode = HitsPerPageRenderingOptions.widgetParams.containerNode
- *   var items = HitsPerPageRenderingOptions.items
- *   var refine = HitsPerPageRenderingOptions.refine
+ * function renderFn(HitsPerPageRendererOptions, isFirstRendering) {
+ *   var containerNode = HitsPerPageRendererOptions.widgetParams.containerNode
+ *   var items = HitsPerPageRendererOptions.items
+ *   var refine = HitsPerPageRendererOptions.refine
  *
  *   if (isFirstRendering) {
  *     var markup = '<select></select>';
@@ -142,22 +142,29 @@ export type HitsPerPageRenderingOptions = {
  * ]);
  */
 
-export type HitsPerPageRenderer = Renderer<
-  HitsPerPageRenderingOptions & RendererOptions
+// ConnectorParams?
+// cssClasses?
+// partial HitsPerPageRendererOptions?
+// infer TWidgetParams?
+
+export type HitsPerPageRenderer<TWidgetParams> = Renderer<
+  HitsPerPageRendererOptions<TWidgetParams>
 >;
 
-export type HitsPerPageWitgetFactory = WidgetFactory<HitsPerPageWidgetOptions>;
+export type HitsPerPageWitgetFactory = WidgetFactory<
+  HitsPerPageConnectorParams
+>;
 
-type HitsPerPageConnector = (
+type HitsPerPageConnector<TWidgetParams> = (
   /**
    * Rendering function for the custom **HitsPerPage** widget.
    */
-  render: HitsPerPageRenderer,
+  render: HitsPerPageRenderer<TWidgetParams>,
 
   /**
    * Unmount function called when the widget is disposed.
    */
-  unmount: () => void
+  unmount?: () => void
 ) => HitsPerPageWitgetFactory;
 
 const connector: HitsPerPageConnector = function connectHitsPerPage(
@@ -166,7 +173,7 @@ const connector: HitsPerPageConnector = function connectHitsPerPage(
 ) {
   checkRendering(renderFn, withUsage());
 
-  return (widgetParams = {} as HitsPerPageWidgetOptions) => {
+  return (widgetParams = {} as HitsPerPageConnectorParams) => {
     const { items: userItems, transformItems = items => items } = widgetParams;
     let items = userItems;
 
@@ -194,18 +201,20 @@ const connector: HitsPerPageConnector = function connectHitsPerPage(
 
     const normalizeItems = ({
       hitsPerPage,
-    }: SearchParameters): HitsPerPageWidgetOptionsItem[] => {
+    }: SearchParameters): HitsPerPageConnectorParamsItem[] => {
       return items.map(item => ({
         ...item,
         isRefined: Number(item.value) === Number(hitsPerPage),
       }));
     };
 
-    let setHitsPerPage: (value: HitsPerPageWidgetOptionsItem['value']) => void;
+    let setHitsPerPage: (
+      value: HitsPerPageConnectorParamsItem['value']
+    ) => void;
 
     let createURLFactory: (
       state: SearchParameters
-    ) => HitsPerPageRenderingOptions['createURL'];
+    ) => HitsPerPageRendererOptions['createURL'];
 
     return {
       $$type: 'ais.hitsPerPage',

@@ -2,13 +2,17 @@ import algoliasearchHelper, {
   SearchParameters,
   SearchResults,
 } from 'algoliasearch-helper';
-import connectHitsPerPage from '../connectHitsPerPage';
+import connectHitsPerPage, {
+  HitsPerPageWidgetOptions,
+  HitsPerPageWidgetOptionsItem,
+} from '../connectHitsPerPage';
 
 describe('connectHitsPerPage', () => {
   describe('Usage', () => {
     it('throws without items', () => {
       expect(() => {
         connectHitsPerPage(() => {})({
+          // @ts-ignore
           items: undefined,
         });
       }).toThrowErrorMatchingInlineSnapshot(`
@@ -19,10 +23,13 @@ See documentation: https://www.algolia.com/doc/api-reference/widgets/hits-per-pa
     });
 
     it('throws with empty items', () => {
+      const items: HitsPerPageWidgetOptionsItem[] = [];
+      const options: HitsPerPageWidgetOptions = {
+        items,
+      };
+
       expect(() => {
-        connectHitsPerPage(() => {})({
-          items: [],
-        });
+        connectHitsPerPage(() => {})(options);
       }).toThrowErrorMatchingInlineSnapshot(`
 "A default value must be specified in \`items\`.
 
